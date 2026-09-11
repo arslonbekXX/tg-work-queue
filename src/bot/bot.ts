@@ -5,20 +5,25 @@ import { createErrorBoundary } from "./middleware/error-boundary.ts"
 import { heartbeatTransformer } from "./middleware/heartbeat.transformer.ts"
 import { createRouter } from "./router.ts"
 
-export interface BotDeps {
-  readonly token: string
-  readonly commands: readonly CommandSpec[]
-  readonly heartbeatPath: string
-  readonly logger: Logger
+/**
+ * Creates the bot with its API-level concerns only.
+ *
+ * Commands are attached separately because the notifier is built from
+ * `bot.api`, so the bot has to exist before the container that produces the
+ * commands does.
+ */
+export function createBot(token: string, heartbeatPath: string, logger: Logger): Bot<Context> {
+  const bot = new Bot(token)
+  bot.api.config.use(heartbeatTransformer(heartbeatPath, logger))
+  return bot
 }
 
-/** Wires grammY together. The framework is confined to this file and the adapter. */
-export function createBot({ token, commands, heartbeatPath, logger }: BotDeps): Bot<Context> {
-  const bot = new Bot(token)
-
-  bot.api.config.use(heartbeatTransformer(heartbeatPath, logger))
+/** Installs routing and the error boundary. Call once, after the container is built. */
+export function installCommands(
+  bot: Bot<Context>,
+  commands: readonly CommandSpec[],
+  logger: Logger,
+): void {
   bot.use(createRouter(commands))
   bot.catch(createErrorBoundary(logger))
-
-  return bot
 }
