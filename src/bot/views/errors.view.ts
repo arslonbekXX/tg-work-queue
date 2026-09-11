@@ -59,3 +59,11 @@ export function wassignUsage(): Reply {
     "Usage: <code>!wassign &lt;N or task_id&gt; @username [...]</code>\nExamples:\n• <code>!wassign 1 @alice</code>\n• <code>!wassign #1 @alice @bob</code>\n• <code>!wassign repo/123 @alice @bob @charlie</code>",
   )
 }
+
+/**
+ * An unexpected failure inside a handler. New behaviour: Python logged the
+ * exception and replied nothing at all.
+ */
+export function unexpectedError(): Reply {
+  return plain("Something went wrong handling that command. Please try again.")
+}

@@ -1,4 +1,3 @@
-import type { Database } from "bun:sqlite"
 import { beforeEach, describe, expect, test } from "bun:test"
 import { ReminderRepository } from "@db/reminder.repository.ts"
 import { TaskRepository } from "@db/task.repository.ts"
@@ -14,7 +13,6 @@ const CHAT = -1001
 const MR_URL = "http://gitlab.example.com/group/monorepo/-/merge_requests/120"
 const silent = createLogger("test", { sink: () => {} })
 
-let db: Database
 let tasks: TaskRepository
 let reminders: ReminderRepository
 let scheduler: FakeScheduler
@@ -22,7 +20,7 @@ let notifier: FakeNotifier
 let service: ReminderService
 
 beforeEach(() => {
-  db = createTestDatabase()
+  const db = createTestDatabase()
   tasks = new TaskRepository(db)
   reminders = new ReminderRepository(db)
   scheduler = new FakeScheduler()
