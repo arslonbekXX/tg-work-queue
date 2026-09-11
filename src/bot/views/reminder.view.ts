@@ -88,3 +88,15 @@ export function reminderRemoved(): Reply {
     "🗑 Reminder configuration deleted.\n\nUse <code>!wreminder-set &lt;cron_expression&gt;</code> to create a new one.",
   )
 }
+
+/**
+ * The domain parser accepted the expression but croner refused it. Python
+ * wrapped APScheduler's raised error the same way.
+ */
+export function cronRejected(expression: string): Reply {
+  return html(
+    "❌ Invalid cron expression: " +
+      escapeHtml(`Unrecognized expression "${expression}"`) +
+      "\n\nPlease check your expression and try again.\nExample: <code>!wreminder-set 0 9 * * *</code>",
+  )
+}
