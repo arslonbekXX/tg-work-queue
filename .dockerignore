@@ -1,0 +1,9 @@
+.git
+.github
+.env
+node_modules
+data
+*.md
+biome.json
+bunfig.toml
+**/*.test.ts
