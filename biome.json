@@ -1,0 +1,81 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": { "includes": ["src/**/*.ts", "*.json"] },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "asNeeded",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": { "recommended": true }
+  },
+  "overrides": [
+    {
+      "includes": ["src/domain/**", "src/shared/**", "src/config/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "grammy": "domain/shared/config must stay framework-free.",
+                  "croner": "domain/shared/config must stay framework-free.",
+                  "bun:sqlite": "domain/shared/config must stay framework-free."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/services/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "grammy": "Services talk to ports, not frameworks.",
+                  "croner": "Services talk to ports, not frameworks.",
+                  "bun:sqlite": "Services use repositories, not the driver."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/bot/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "croner": "The bot layer must not schedule directly.",
+                  "bun:sqlite": "The bot layer must not touch the database."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
