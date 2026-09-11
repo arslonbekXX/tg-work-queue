@@ -1,6 +1,6 @@
 # Telegram Work Queue Bot
 
-A Telegram bot that manages task queues for GitLab/GitHub merge requests in channels/groups with automatic cron-based reminders.
+A Telegram bot that manages task queues for GitLab/GitHub merge requests in groups, with automatic cron-based reminders.
 
 ## Commands
 
@@ -50,21 +50,25 @@ TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 
 ### 3. Install Dependencies
 
+Requires [Bun](https://bun.com) 1.4 or newer.
+
 ```bash
-pip install -r requirements.txt
+bun install
 ```
 
 This includes:
-- `python-telegram-bot` - Telegram Bot API wrapper
-- `python-dotenv` - Environment variable management
-- `APScheduler` - Cron-based reminder scheduling
+- `grammy` - Telegram Bot API framework
+- `croner` - Cron-based reminder scheduling
+
+SQLite comes from Bun itself (`bun:sqlite`), and Bun reads `.env` natively, so
+neither needs a dependency.
 
 ### 4. Run the Bot
 
 #### Option A: Run Directly
 
 ```bash
-python bot.py
+bun run start
 ```
 
 #### Option B: Run with Docker
@@ -83,11 +87,14 @@ docker-compose logs -f
 docker-compose down
 ```
 
-### 5. Add Bot to Channel/Group
+### 5. Add Bot to Group
 
-1. Add the bot to your Telegram channel or group
+1. Add the bot to your Telegram group
 2. Make the bot an **admin** with "Post Messages" permission
 3. Start using commands!
+
+> **Note:** commands only work in groups and direct messages. The bot does not
+> respond to channel posts or to edited messages.
 
 ## Usage Examples
 
@@ -207,18 +214,18 @@ Reminders use 5-part cron expressions in UTC timezone:
 ## Reminder Behavior
 
 - Reminders are sent only when there are **pending tasks** in the queue
-- Each channel/group can have its own independent reminder schedule
+- Each chat can have its own independent reminder schedule
 - Reminders persist across bot restarts
 - You can temporarily disable reminders without losing the configuration
 
 ## Features
 
 - **Multiple Assignees**: Assign tasks to multiple team members
-- **Isolated Queues**: Each channel/group has its own independent task queue
-- **Unique Tasks**: Task IDs are unique per channel (same MR can't be added twice)
+- **Isolated Queues**: Each chat has its own independent task queue
+- **Unique Tasks**: Task IDs are unique per chat (same MR can't be added twice)
 - **Clickable Links**: Tasks are displayed as clickable links to the MR/PR
-- **Custom Reminders**: Each channel can configure its own reminder schedule
-- **Persistent Storage**: Data is stored in SQLite database (`workqueue.db`)
+- **Custom Reminders**: Each chat can configure its own reminder schedule
+- **Persistent Storage**: Data is stored in a SQLite database (`workqueue.db`)
 - **Flexible Assignment**: Reassign tasks at any time, replacing all existing assignees
 
 ## Notes
@@ -226,3 +233,55 @@ Reminders use 5-part cron expressions in UTC timezone:
 - **Task Assignment**: Use `!wassign` to change assignees - this replaces all existing assignees with the new ones
 - **Task Removal**: When a task is removed, all its assignees are automatically cleaned up
 - **Migration**: Existing single-assignee tasks are automatically migrated to support multiple assignees on first run
+
+## Development
+
+```bash
+bun run dev         # watch mode
+bun test            # the whole suite
+bun run typecheck   # tsc --noEmit
+bun run lint        # Biome: lint and format check
+bun run format      # Biome: apply fixes
+bun run check       # typecheck + lint + test, as CI runs them
+```
+
+### Layout
+
+```
+src/
+├── main.ts       entrypoint: environment, database, wiring, signals
+├── app/          composition root, shutdown, Docker healthcheck
+├── config/       environment parsing
+├── shared/       logger, HTML escaping, Result — depends on nothing
+├── domain/       pure logic: URL parsing, assignees, task refs, cron translation
+├── db/           bun:sqlite, migrations, repositories
+├── telegram/     the Notifier port and its grammY implementation
+├── scheduler/    the ReminderScheduler port and its croner implementation
+├── services/     use cases
+└── bot/          routing, commands, and every user-visible string in views/
+```
+
+Each layer may only import from the ones below it. `src/architecture.test.ts`
+enforces that by reading the imports; Biome separately bans `grammy`, `croner`
+and `bun:sqlite` from the layers that must stay framework-free.
+
+Two rules worth knowing before you change anything:
+
+- **Every user-visible string lives in `src/bot/views/`.** `views.test.ts`
+  pins them to what the bot said before the TypeScript rewrite.
+- **Never `await` inside a `db.transaction()` callback.** `bun:sqlite` is
+  synchronous, so repositories are synchronous and services are async.
+
+### Database
+
+The schema has not changed since the Python version and a database created by
+either is byte-identical; `src/db/migrator.test.ts` asserts that. Schema
+version is tracked in `PRAGMA user_version` rather than a table, so no extra
+table appears in an existing database.
+
+### Reminder schedules
+
+Day-of-week numbering is Monday-first, which is what APScheduler used and what
+the table above documents. `src/domain/cron/day-of-week.ts` translates it to
+the Sunday-first numbering `croner` expects, so stored schedules keep their
+original meaning.
