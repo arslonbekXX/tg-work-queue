@@ -35,7 +35,9 @@ describe("createLogger", () => {
 
   test("child loggers keep the options but change the name", () => {
     const { lines, sink } = recorder()
-    createLogger("app", { sink, now: () => FIXED }).child("db").info("migrated")
+    createLogger("app", { sink, now: () => FIXED })
+      .child("db")
+      .info("migrated")
     expect(lines[0]?.line).toBe("2026-09-11 10:00:00,123 - db - INFO - migrated")
   })
 })
